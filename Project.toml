@@ -1,0 +1,13 @@
+name = "SquareRootCovarianceMatrices"
+uuid = "4fb742fb-d184-43cc-b2b7-d340a08959b7"
+authors = ["Liam A. A. Blake <liam.blake@adelaide.edu.au>"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1.6.7"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
