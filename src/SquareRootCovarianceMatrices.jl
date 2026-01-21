@@ -1,5 +1,8 @@
 module SquareRootCovarianceMatrices
+using LinearAlgebra
 
-# Write your package code here.
+include("psdmatrix.jl")
+
+export PSDMatrix
 
 end
