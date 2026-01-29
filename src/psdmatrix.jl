@@ -2,22 +2,23 @@ using LinearAlgebra
 
 mutable struct PSDMatrix{T <: Real} <: AbstractMatrix{T}
     sqrt::Matrix{T}
-end
 
-function PSDMatrix(mat::Matrix{T}; sqrt_mode::String = "chol", check::Bool = true) where {T <: Real}
-    if sqrt_mode == "pass"
-        sqrt = mat
-        if check
-            if any(eigvals(sqrt * transpose(sqrt)) .<= 0)
-                throw(ArgumentError("The provided matrix is not a valid square root of a positive definite matrix."))
+    function PSDMatrix(
+            mat::Matrix{T}; sqrt_mode::String = "chol", check::Bool = true) where {T <: Real}
+        if sqrt_mode == "pass"
+            sqrt = mat
+            if check
+                if any(eigvals(sqrt * transpose(sqrt)) .<= 0)
+                    throw(ArgumentError("The provided matrix is not a valid square root of a positive definite matrix."))
+                end
             end
+        elseif sqrt_mode == "chol"
+            sqrt = cholesky(mat).L
+        else
+            throw(ArgumentError("Unsupported sqrt_mode: $sqrt_mode"))
         end
-    elseif sqrt_mode == "chol"
-        sqrt = cholesky(mat).L
-    else
-        throw(ArgumentError("Unsupported sqrt_mode: $sqrt_mode"))
+        return new{T}(sqrt)
     end
-    return PSDMatrix{T}(sqrt)
 end
 
 # Basic AbstractMatrix interface implementation
@@ -82,6 +83,13 @@ function Base.show(io::IO, A::PSDMatrix{T}) where {T}
 end
 
 """
+    issymmetric(A::PSDMatrix)
+
+PSDMatrix is always symmetric.
+"""
+LinearAlgebra.issymmetric(A::PSDMatrix) = true
+
+"""
     ishermitian(A::PSDMatrix)
 
 PSDMatrix is always Hermitian (symmetric for real matrices).
@@ -97,4 +105,14 @@ function LinearAlgebra.isposdef(A::PSDMatrix)
     # A PSD matrix is positive definite if all eigenvalues are positive
     # For square root representation, this means sqrt has full rank
     return rank(A.sqrt) == size(A.sqrt, 1)
+end
+
+"""
+    full_matrix!(dest::AbstractArray, A::PSDMatrix)
+
+Compute the full positive semidefinite matrix A and store it in dest.
+"""
+function full_matrix!(dest::AbstractArray{X}, A::PSDMatrix{X}) where {X <: Real}
+    mul!(dest, A.sqrt, transpose(A.sqrt))
+    return nothing
 end
