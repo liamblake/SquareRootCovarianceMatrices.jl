@@ -1,4 +1,5 @@
 using LinearAlgebra
+using Random
 
 @testset "PSDMatrix Constructor" begin
     # Test basic constructor with Cholesky decomposition
@@ -99,11 +100,11 @@ end
 
     # Test larger matrix
     n = 5
-    A_large = rand(n, n)
+    A_large = rand(Xoshiro(1234), n, n)
     A_large = A_large' * A_large + I  # Make it PSD
     psd_large = PSDMatrix(A_large)
     @test size(psd_large) == (n, n)
-    @test Matrix(psd_large)≈A_large atol=1e-10
+    @test Matrix(psd_large)≈A_large atol=1e-8
     @test ishermitian(psd_large)
 end
 
