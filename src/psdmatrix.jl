@@ -8,8 +8,8 @@ mutable struct PSDMatrix{T <: Real} <: AbstractMatrix{T}
         if sqrt_mode == "pass"
             sqrt = mat
             if check
-                if any(eigvals(sqrt * transpose(sqrt)) .<= 0)
-                    throw(ArgumentError("The provided matrix is not a valid square root of a positive definite matrix."))
+                if any(eigvals(sqrt * transpose(sqrt)) .< 0)
+                    throw(ArgumentError("The provided matrix is not a valid square root of a positive semi-definite matrix."))
                 end
             end
         elseif sqrt_mode == "chol"
