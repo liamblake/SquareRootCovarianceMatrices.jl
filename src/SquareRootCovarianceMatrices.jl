@@ -6,6 +6,6 @@ include("operations.jl")
 include("eigen.jl")
 include("downdate.jl")
 
-export PSDMatrix, X_A_Xt!, right_svd, eigmax!, downdate!
+export PSDMatrix, X_A_Xt, X_A_Xt!, right_svd, eigmax!, downdate!
 
 end
