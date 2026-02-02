@@ -36,7 +36,7 @@ function LinearAlgebra.lmul!(a::Number, A::PSDMatrix{T}) where {T}
     return A
 end
 
-LinearAlgebra.tr(A::PSDMatrix) = sum(norm(A.sqrt[i, :])^2 for i in 1:size(A.sqrt, 1))
+LinearAlgebra.tr(A::PSDMatrix) = sum(norm(A.sqrt[i, :])^2 for i = 1:size(A.sqrt, 1))
 
 function Base.copy(A::PSDMatrix{T}) where {T}
     return PSDMatrix(copy(A.sqrt); sqrt_mode = "pass")

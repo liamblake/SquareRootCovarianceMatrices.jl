@@ -4,12 +4,19 @@ mutable struct PSDMatrix{T <: Real} <: AbstractMatrix{T}
     sqrt::Matrix{T}
 
     function PSDMatrix(
-            mat::Matrix{T}; sqrt_mode::String = "chol", check::Bool = true) where {T <: Real}
+            mat::AbstractMatrix{T};
+            sqrt_mode::String = "chol",
+            check::Bool = true
+    ) where {T <: Real}
         if sqrt_mode == "pass"
-            sqrt = mat
+            sqrt = Matrix(mat)
             if check
                 if any(eigvals(sqrt * transpose(sqrt)) .< 0)
-                    throw(ArgumentError("The provided matrix is not a valid square root of a positive semi-definite matrix."))
+                    throw(
+                        ArgumentError(
+                        "The provided matrix is not a valid square root of a positive semi-definite matrix.",
+                    ),
+                    )
                 end
             end
         elseif sqrt_mode == "chol"
@@ -52,8 +59,12 @@ Setting individual elements is not supported for PSDMatrix as it would break
 the positive semidefinite constraint. Use reconstruction methods instead.
 """
 function Base.setindex!(A::PSDMatrix, v, i::Int, j::Int)
-    throw(ArgumentError("Direct element assignment not supported for PSDMatrix. " *
-                        "Modifying individual elements would break positive semidefinite constraint."))
+    throw(
+        ArgumentError(
+        "Direct element assignment not supported for PSDMatrix. " *
+        "Modifying individual elements would break positive semidefinite constraint.",
+    ),
+    )
 end
 
 # Additional useful methods for better performance and functionality
