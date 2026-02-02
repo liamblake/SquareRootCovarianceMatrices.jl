@@ -46,3 +46,27 @@ function Base.copyto!(dest::PSDMatrix{T}, src::PSDMatrix{T}) where {T}
     copyto!(dest.sqrt, src.sqrt)
     return dest
 end
+
+function Base.:(==)(A::PSDMatrix, B::PSDMatrix)
+    return Matrix(A) == Matrix(B)
+end
+
+function Base.:(==)(A::PSDMatrix, B::AbstractMatrix)
+    return Matrix(A) == B
+end
+
+function Base.:(==)(A::AbstractMatrix, B::PSDMatrix)
+    return A == Matrix(B)
+end
+
+function Base.isapprox(A::PSDMatrix, B::PSDMatrix; kwargs...)
+    return isapprox(Matrix(A), Matrix(B); kwargs...)
+end
+
+function Base.isapprox(A::PSDMatrix, B::AbstractMatrix; kwargs...)
+    return isapprox(Matrix(A), B; kwargs...)
+end
+
+function Base.isapprox(A::AbstractMatrix, B::PSDMatrix; kwargs...)
+    return isapprox(A, Matrix(B); kwargs...)
+end
