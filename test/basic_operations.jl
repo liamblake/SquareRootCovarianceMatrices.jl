@@ -178,3 +178,190 @@ end
         @test eltype(C_f64.sqrt) === Float64
     end
 end
+
+@testset "PSDMatrix Inverse" begin
+    @testset "Basic inverse" begin
+        # Create a test positive definite matrix
+        A_mat = [4.0 2.0; 2.0 3.0]
+        A = PSDMatrix(A_mat)
+
+        # Compute inverse using the PSDMatrix method
+        A_inv = inv(A)
+
+        # Test that A * A_inv ≈ I
+        @test Matrix(A) * A_inv ≈ I
+        @test A_inv * Matrix(A) ≈ I
+
+        # Test that result matches standard matrix inverse
+        @test A_inv ≈ inv(A_mat)
+    end
+
+    @testset "Inverse with different sizes" begin
+        # Test 3x3 matrix
+        B_mat = [5.0 1.0 0.5; 1.0 4.0 1.0; 0.5 1.0 3.0]
+        B = PSDMatrix(B_mat)
+        B_inv = inv(B)
+
+        @test Matrix(B) * B_inv ≈ I
+        @test B_inv ≈ inv(B_mat)
+
+        # Test 1x1 matrix
+        C_mat = [2.0;;]
+        C = PSDMatrix(C_mat)
+        C_inv = inv(C)
+
+        @test Matrix(C) * C_inv ≈ I
+        @test C_inv ≈ inv(C_mat)
+    end
+
+    @testset "Inverse with diagonal matrix" begin
+        # Test with diagonal matrix (simpler case)
+        D_mat = Diagonal([2.0, 3.0, 5.0])
+        D = PSDMatrix(Matrix(D_mat))
+        D_inv = inv(D)
+
+        @test Matrix(D) * D_inv ≈ I
+        @test D_inv ≈ inv(D_mat)
+    end
+
+    @testset "Inverse type stability" begin
+        # Test Float64
+        A_f64 = PSDMatrix([4.0 2.0; 2.0 3.0])
+        A_inv_f64 = inv(A_f64)
+        @test eltype(A_inv_f64) === Float64
+
+        # Test Float32
+        A_f32 = PSDMatrix([4.0f0 2.0f0; 2.0f0 3.0f0])
+        A_inv_f32 = inv(A_f32)
+        @test eltype(A_inv_f32) === Float32
+    end
+
+    @testset "Inverse accuracy with random matrices" begin
+        # Test with larger random positive definite matrix
+        n = 5
+        A_sqrt = randn(n, n)
+        A_mat = A_sqrt * A_sqrt' + I  # Add I to ensure positive definiteness
+        A = PSDMatrix(A_mat)
+        A_inv = inv(A)
+
+        @test Matrix(A) * A_inv≈I atol=1e-10
+        @test A_inv * Matrix(A)≈I atol=1e-10
+        @test A_inv≈inv(A_mat) atol=1e-10
+    end
+end
+
+@testset "PSDMatrix Determinant" begin
+    @testset "Determinant with square sqrt matrix" begin
+        # Create a test positive definite matrix with square sqrt representation
+        A_mat = [4.0 2.0; 2.0 3.0]
+        A = PSDMatrix(A_mat)
+        
+        # Ensure the sqrt is square
+        @test size(A.sqrt, 1) == size(A.sqrt, 2)
+        
+        # Test determinant matches the standard matrix determinant
+        @test det(A) ≈ det(A_mat)
+        
+        # Test that det(A) = det(sqrt)^2 for square sqrt
+        @test det(A) ≈ det(A.sqrt)^2
+    end
+    
+    @testset "Determinant with rectangular sqrt matrix" begin
+        # Create a PSDMatrix with rectangular sqrt representation
+        # For this, we need to manually construct with a non-square sqrt
+        sqrt_rect = [1.0 0.0; 0.0 2.0; 1.0 1.0]  # 3x2 matrix
+        A = PSDMatrix(sqrt_rect; sqrt_mode="pass", check=false)
+        
+        # Ensure the sqrt is rectangular
+        @test size(A.sqrt, 1) != size(A.sqrt, 2)
+        
+        # Compute the full matrix
+        A_mat = sqrt_rect' * sqrt_rect
+        
+        # Test determinant matches the full matrix determinant
+        @test det(A) ≈ det(A_mat)
+        
+        # Test that det(A) = det(sqrt' * sqrt) for rectangular sqrt
+        @test det(A) ≈ det(A.sqrt' * A.sqrt)
+    end
+    
+    @testset "Determinant with different sizes" begin
+        # Test 3x3 matrix
+        B_mat = [5.0 1.0 0.5; 1.0 4.0 1.0; 0.5 1.0 3.0]
+        B = PSDMatrix(B_mat)
+        @test det(B) ≈ det(B_mat)
+        
+        # Test 1x1 matrix
+        C_mat = [2.0;;]
+        C = PSDMatrix(C_mat)
+        @test det(C) ≈ det(C_mat)
+        @test det(C) ≈ 2.0
+        
+        # Test 4x4 matrix
+        D_mat = [6.0 2.0 1.0 0.5; 2.0 5.0 1.0 0.5; 1.0 1.0 4.0 0.5; 0.5 0.5 0.5 3.0]
+        D = PSDMatrix(D_mat)
+        @test det(D) ≈ det(D_mat)
+    end
+    
+    @testset "Determinant with diagonal matrix" begin
+        # Test with diagonal matrix (product of diagonal elements)
+        D_mat = Diagonal([2.0, 3.0, 5.0])
+        D = PSDMatrix(Matrix(D_mat))
+        
+        @test det(D) ≈ det(D_mat)
+        @test det(D) ≈ 2.0 * 3.0 * 5.0
+        @test det(D) ≈ 30.0
+    end
+    
+    @testset "Determinant type stability" begin
+        # Test Float64
+        A_f64 = PSDMatrix([4.0 2.0; 2.0 3.0])
+        det_f64 = det(A_f64)
+        @test typeof(det_f64) === Float64
+        
+        # Test Float32
+        A_f32 = PSDMatrix([4.0f0 2.0f0; 2.0f0 3.0f0])
+        det_f32 = det(A_f32)
+        @test typeof(det_f32) === Float32
+    end
+    
+    @testset "Determinant with scaled matrices" begin
+        # Test that det(α * A) = α^n * det(A) for n×n matrix
+        A_mat = [4.0 2.0; 2.0 3.0]
+        A = PSDMatrix(A_mat)
+        α = 2.0
+        
+        A_scaled = α * A
+        
+        # For 2x2 matrix: det(α * A) = α^2 * det(A)
+        @test det(A_scaled) ≈ α^2 * det(A)
+        @test det(A_scaled) ≈ det(α * A_mat)
+    end
+    
+    @testset "Determinant accuracy with random matrices" begin
+        # Test with larger random positive definite matrix
+        n = 5
+        A_sqrt = randn(n, n)
+        A_mat = A_sqrt * A_sqrt' + I  # Add I to ensure positive definiteness
+        A = PSDMatrix(A_mat)
+        
+        @test det(A)≈det(A_mat) rtol=1e-9
+        @test det(A) > 0  # PSD matrices have non-negative determinants
+    end
+    
+    @testset "Determinant with rectangular sqrt (overdetermined)" begin
+        # Create another rectangular case with more rows than columns
+        sqrt_rect = [1.0 0.0; 2.0 1.0; 0.0 3.0; 1.0 1.0]  # 4x2 matrix
+        A = PSDMatrix(sqrt_rect; sqrt_mode="pass", check=false)
+        
+        # Ensure the sqrt is rectangular
+        @test size(A.sqrt, 1) > size(A.sqrt, 2)
+        
+        # Compute the full matrix
+        A_mat = sqrt_rect' * sqrt_rect
+        
+        # Test determinant
+        @test det(A) ≈ det(A_mat)
+        @test det(A) > 0
+    end
+end

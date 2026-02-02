@@ -42,6 +42,14 @@ end
 
 LinearAlgebra.tr(A::PSDMatrix) = sum(norm(A.sqrt[i, :])^2 for i in 1:size(A.sqrt, 1))
 
+function LinearAlgebra.det(A::PSDMatrix{T}) where {T <: Real}
+    if size(A.sqrt, 1) == size(A.sqrt, 2)
+        return LinearAlgebra.det(A.sqrt)^2
+    else
+        return LinearAlgebra.det(A.sqrt' * A.sqrt)
+    end
+end
+
 function Base.copy(A::PSDMatrix{T}) where {T}
     return PSDMatrix(copy(A.sqrt); sqrt_mode = "pass")
 end
@@ -73,4 +81,9 @@ end
 
 function Base.isapprox(A::AbstractMatrix, B::PSDMatrix; kwargs...)
     return isapprox(A, Matrix(B); kwargs...)
+end
+
+function LinearAlgebra.inv(A::PSDMatrix{T}) where {T <: Real}
+    S_inv = inv(A.sqrt)
+    return S_inv' * S_inv
 end

@@ -20,7 +20,7 @@ mutable struct PSDMatrix{T <: Real} <: AbstractMatrix{T}
                 end
             end
         elseif sqrt_mode == "chol"
-            sqrt = Matrix(cholesky(mat).L)
+            sqrt = Matrix(cholesky(mat; check = false).L)
         else
             throw(ArgumentError("Unsupported sqrt_mode: $sqrt_mode"))
         end

@@ -2,7 +2,7 @@
 Downdate the PSDMatrix A by removing the contribution of the vector u, i.e. A := A - a*u*u'.
 The downdate is performed in-place on the square root of A. The vector u is also modified inplace during the process
 """
-function downdate!(A::PSDMatrix{T}, u::Vector{T}, a::T = T(1)) where {T <: Real}
+function downdate!(A::PSDMatrix{T}, u::AbstractVector{T}, a::T = T(1)) where {T <: Real}
     n = size(A, 1)
     @assert length(u)==n "Length of u must match the size of A."
     α = sqrt(a)
