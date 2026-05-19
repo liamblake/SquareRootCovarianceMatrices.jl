@@ -59,6 +59,11 @@ function Base.copyto!(dest::PSDMatrix{T}, src::PSDMatrix{T}) where {T}
     return dest
 end
 
+function Base.copyto!(dest::AbstractMatrix{T}, src::PSDMatrix{T}) where {T}
+    copyto!(dest, Matrix(src))
+    return dest
+end
+
 function Base.:(==)(A::PSDMatrix, B::PSDMatrix)
     return Matrix(A) == Matrix(B)
 end

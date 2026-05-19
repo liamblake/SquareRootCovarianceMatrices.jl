@@ -20,7 +20,22 @@ mutable struct PSDMatrix{T <: Real} <: AbstractMatrix{T}
                 end
             end
         elseif sqrt_mode == "chol"
-            sqrt = Matrix(cholesky(mat; check = false).L)
+            if check
+                if any(eigvals(mat) .< -1e-10)
+                    throw(
+                        ArgumentError(
+                        "The provided matrix is not positive semi-definite.",
+                    ),
+                    )
+                end
+            end
+            chol = cholesky(mat; check = false)
+            if chol.info < 0
+                throw(ArgumentError("Cholesky decomposition failed due to illegal arguments."))
+            end
+
+            sqrt = Matrix(chol.L)
+
         else
             throw(ArgumentError("Unsupported sqrt_mode: $sqrt_mode"))
         end
@@ -86,11 +101,7 @@ Display method for PSDMatrix.
 function Base.show(io::IO, A::PSDMatrix{T}) where {T}
     n = size(A, 1)
     print(io, "$(n)×$(n) PSDMatrix{$T}:")
-    if n <= 4
-        print(io, "\n", Matrix(A))
-    else
-        print(io, " (use Matrix(A) to see full matrix)")
-    end
+    print(io, "\n", Matrix(A))
 end
 
 """
