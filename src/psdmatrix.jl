@@ -1,4 +1,5 @@
 using LinearAlgebra
+using SparseArrays
 
 mutable struct PSDMatrix{T <: Real, M <: AbstractMatrix{T}} <: AbstractMatrix{T}
     sqrt::M
@@ -8,10 +9,11 @@ mutable struct PSDMatrix{T <: Real, M <: AbstractMatrix{T}} <: AbstractMatrix{T}
             sqrt_mode::String = "chol",
             check::Bool = true
     ) where {T <: Real}
+        M = typeof(mat)
         if sqrt_mode == "pass"
-            sqrt = Matrix(mat)
+            sqrt = copy(mat)
             if check
-                if any(eigvals(sqrt * transpose(sqrt)) .< 0)
+                if any(eigvals(Matrix(sqrt * transpose(sqrt))) .< 0)
                     throw(
                         ArgumentError(
                         "The provided matrix is not a valid square root of a positive semi-definite matrix.",
@@ -21,7 +23,7 @@ mutable struct PSDMatrix{T <: Real, M <: AbstractMatrix{T}} <: AbstractMatrix{T}
             end
         elseif sqrt_mode == "chol"
             if check
-                if any(eigvals(mat) .< -1e-10)
+                if any(eigvals(Matrix(mat)) .< -1e-10)
                     throw(
                         ArgumentError(
                         "The provided matrix is not positive semi-definite.",
@@ -30,16 +32,18 @@ mutable struct PSDMatrix{T <: Real, M <: AbstractMatrix{T}} <: AbstractMatrix{T}
                 end
             end
             chol = cholesky(mat; check = false)
-            if chol.info < 0
-                throw(ArgumentError("Cholesky decomposition failed due to illegal arguments."))
-            end
 
-            sqrt = Matrix(chol.L)
+            # TODO: probably other matrix types that this needs to be done for.
+            if M <: SparseMatrixCSC
+                sqrt = sparse(chol.L)
+            else
+                sqrt = M(chol.L)
+            end
 
         else
             throw(ArgumentError("Unsupported sqrt_mode: $sqrt_mode"))
         end
-        return new{T, typeof(mat)}(sqrt)
+        return new{T, M}(sqrt)
     end
 end
 
@@ -98,9 +102,9 @@ end
 
 Display method for PSDMatrix.
 """
-function Base.show(io::IO, A::PSDMatrix)
+function Base.show(io::IO, A::PSDMatrix{T, M}) where {T, M}
     n = size(A, 1)
-    print(io, "$(n)×$(n) PSDMatrix{$T}:")
+    print(io, "$(n)×$(n) PSDMatrix{$T,M}:")
     print(io, "\n", Matrix(A))
 end
 
