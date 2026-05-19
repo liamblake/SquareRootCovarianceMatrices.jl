@@ -1,30 +1,26 @@
-using TSVD
+using Arpack
 
 """
     LinearAlgebra.eigen(A::PSDMatrix; k::Int = size(A, 1))
 
 Overload of the LinearAlgebra.eigen function to compute eigenvalues and eigenvectors of a PSDMatrix.
-Only the top k eigenvalues/vectors are computed (defaulting to all of them) and the eigenvalues are sorted in descending order.
+Only the top k eigenvalues/vectors are computed (defaulting to almost all of them) and the eigenvalues are sorted in descending order. This uses ARPACK internally, so only up to min(n,m) - 1 eigenvalues can be computed efficiently. If k = n then the full matrix is computed and the standard LinearAlgebra.eigen function is called. The purpose of this implementation is to be efficient for a small number of eigenvalues of very large matrices.
 """
 function LinearAlgebra.eigen(A::PSDMatrix{T}; k::Int = size(A, 1)) where {T <: Real}
     # Compute SVD of the square root matrix
     # For A = sqrt * sqrt', eigenvalues of A are the squared singular values of sqrt
     # and eigenvectors of A are the left singular vectors of sqrt
+    svd_call_min = min(size(A.sqrt)...)
+    if k < 1 || k > size(A, 1)
+        throw(ArgumentError("k must be between 1 and the size of the matrix (n = $n)."))
+    end
 
-    n = size(A.sqrt, 1)
-
-    # Use standard SVD for full decomposition or small matrices
-    # tsvd has issues when k == n
-    if k >= n || n <= 10
-        S = svd(A.sqrt)
-        # Sort by descending eigenvalues and take top k
-        eigenvalues = S.S .^ 2
-        perm = sortperm(eigenvalues; rev = true)[1:k]
-        return LinearAlgebra.Eigen(eigenvalues[perm], S.U[:, perm])
+    if k >= svd_call_min
+        E = LinearAlgebra.eigen(Symmetric(A); sortby = λ -> -real(λ))  # Fall back to full eigen decomposition for all eigenvalues
+        return LinearAlgebra.Eigen(E.values[1:k], E.vectors[:, 1:k])
     else
-        # Use truncated SVD for large matrices with k < n
-        U, s, _ = tsvd(A.sqrt, k)
-        return LinearAlgebra.Eigen(s .^ 2, U)
+        Z, _, _, _, _ = svds(A.sqrt; nsv = k)
+        return LinearAlgebra.Eigen(Z.S .^ 2, Z.U)
     end
 end
 
@@ -34,19 +30,19 @@ end
 Compute the top k right singular values/vectors of A.sqrt, i.e. the eigenvalues/vectors of A'A.
 """
 function right_svd(A::PSDMatrix{T}; k::Int = size(A, 1)) where {T <: Real}
-    n = size(A.sqrt, 1)
-
-    # Use standard SVD for full decomposition or small matrices
-    if k >= n || n <= 10
-        S = svd(A.sqrt)
-        # Sort by descending singular values and take top k
-        perm = sortperm(S.S; rev = true)[1:k]
-        return LinearAlgebra.Eigen(S.S[perm], S.V[:, perm])
-    else
-        # Use truncated SVD for large matrices with k < n
-        _, s, V = tsvd(A.sqrt, k)
-        return LinearAlgebra.Eigen(s, V)
+    svd_call_min = min(size(A.sqrt)...)
+    if k < 1 || k > size(A, 1)
+        throw(ArgumentError("k must be between 1 and the size of the matrix (n = $n)."))
     end
+
+    if k >= svd_call_min
+        E = LinearAlgebra.eigen(Symmetric(A.sqrt' * A.sqrt); sortby = λ -> -real(λ))  # Fall back to full eigen decomposition for all eigenvalues
+        return LinearAlgebra.Eigen(sqrt.(E.values[1:k]), E.vectors[:, 1:k])
+    else
+        Z, _, _, _, _ = svds(A.sqrt; nsv = k)
+        return LinearAlgebra.Eigen(Z.S, Z.V)
+    end
+    # end
 end
 
 """
