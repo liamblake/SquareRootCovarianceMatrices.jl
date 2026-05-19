@@ -1,7 +1,7 @@
 using LinearAlgebra
 
-mutable struct PSDMatrix{T <: Real} <: AbstractMatrix{T}
-    sqrt::Matrix{T}
+mutable struct PSDMatrix{T <: Real, M <: AbstractMatrix{T}} <: AbstractMatrix{T}
+    sqrt::M
 
     function PSDMatrix(
             mat::AbstractMatrix{T};
@@ -39,7 +39,7 @@ mutable struct PSDMatrix{T <: Real} <: AbstractMatrix{T}
         else
             throw(ArgumentError("Unsupported sqrt_mode: $sqrt_mode"))
         end
-        return new{T}(sqrt)
+        return new{T, typeof(mat)}(sqrt)
     end
 end
 
@@ -89,7 +89,7 @@ end
 
 Convert the PSDMatrix to a regular Matrix by computing sqrt * sqrt'.
 """
-function Base.Matrix(A::PSDMatrix{T}) where {T}
+function Base.Matrix(A::PSDMatrix)
     return A.sqrt * A.sqrt'
 end
 
@@ -98,7 +98,7 @@ end
 
 Display method for PSDMatrix.
 """
-function Base.show(io::IO, A::PSDMatrix{T}) where {T}
+function Base.show(io::IO, A::PSDMatrix)
     n = size(A, 1)
     print(io, "$(n)×$(n) PSDMatrix{$T}:")
     print(io, "\n", Matrix(A))
@@ -134,7 +134,8 @@ end
 
 Compute the full positive semidefinite matrix A and store it in dest.
 """
-function full_matrix!(dest::AbstractArray{X}, A::PSDMatrix{X}) where {X <: Real}
+function full_matrix!(
+        dest::AbstractArray{X}, A::PSDMatrix{X, M}) where {X <: Real, M <: AbstractMatrix{X}}
     mul!(dest, A.sqrt, transpose(A.sqrt))
     return nothing
 end
