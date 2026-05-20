@@ -88,6 +88,11 @@ function Base.isapprox(A::AbstractMatrix, B::PSDMatrix; kwargs...)
     return isapprox(A, Matrix(B); kwargs...)
 end
 
+"""
+    LinearAlgebra.inv(A::PSDMatrix)
+
+Note: this will (deliberately) throw an error if the matrix is not invertible, or if the stored type is sparse. In the latter case, the user should manually do the inversion if they are absolutely sure that they want to.
+"""
 function LinearAlgebra.inv(A::PSDMatrix{T}) where {T <: Real}
     S_inv = inv(A.sqrt)
     return S_inv' * S_inv
